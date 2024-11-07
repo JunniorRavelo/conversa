@@ -59,11 +59,19 @@ export function VoiceInterface() {
     setIsListening(!isListening)
   }
 
-  const speakText = (text: string) => {
+  const speakText = async (text: string) => {
     if ('speechSynthesis' in window) {
+      // Espera hasta que `speechSynthesis` esté listo
+      while (window.speechSynthesis.speaking) {
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      }
+
+      // Cancela cualquier síntesis previa y crea un nuevo utterance
+      window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = 'es-ES'
-      window.speechSynthesis.cancel() // Cancelar cualquier síntesis en curso
+      
+      // Inicia la síntesis
       window.speechSynthesis.speak(utterance)
     } else {
       console.error("La síntesis de voz no es compatible con este navegador.")
