@@ -21,14 +21,9 @@ export function VoiceInterface() {
       .catch(() => setHasPermission(false))
   }, [])
 
-  const handleVoiceCapture = () => {
-    if (!hasPermission) {
-      alert('Por favor permite el acceso al micrófono para usar esta función')
-      return
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!recognitionRef.current) {
+  useEffect(() => {
+    if (!recognitionRef.current && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
       recognitionRef.current = new SpeechRecognition()
       recognitionRef.current.lang = 'es-ES'
       recognitionRef.current.continuous = true
@@ -41,31 +36,38 @@ export function VoiceInterface() {
         setVoiceText(transcript)
         console.log("Texto reconocido:", transcript) // Imprime el texto en consola
       }
+
       recognitionRef.current.onerror = (event) => {
-        console.error(event.error)
+        console.error("Error en el reconocimiento de voz:", event.error)
         setIsListening(false)
       }
     }
-  }
+  }, [])
 
-  const startListening = () => {
-    if (!recognitionRef.current) {
-      handleVoiceCapture()
+  const toggleListening = () => {
+    if (!hasPermission) {
+      alert('Por favor permite el acceso al micrófono para usar esta función')
+      return
     }
-    setIsListening(true)
-    setVoiceText('')
-    recognitionRef.current?.start()
-  }
 
-  const stopListening = () => {
-    setIsListening(false)
-    recognitionRef.current?.stop()
+    if (isListening) {
+      recognitionRef.current?.stop()
+    } else {
+      setVoiceText('') // Limpia el texto al iniciar una nueva grabación
+      recognitionRef.current?.start()
+    }
+    setIsListening(!isListening)
   }
 
   const speakText = (text: string) => {
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'es-ES'
-    speechSynthesis.speak(utterance)
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'es-ES'
+      window.speechSynthesis.cancel() // Cancelar cualquier síntesis en curso
+      window.speechSynthesis.speak(utterance)
+    } else {
+      console.error("La síntesis de voz no es compatible con este navegador.")
+    }
   }
 
   const handleSendText = () => {
@@ -170,10 +172,7 @@ export function VoiceInterface() {
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-purple-600">Asistente de Voz</h3>
             <Button
-              onMouseDown={startListening}
-              onMouseUp={stopListening}
-              onTouchStart={startListening}
-              onTouchEnd={stopListening}
+              onClick={toggleListening}
               className={`w-12 h-12 rounded-full ${
                 isListening ? 'animate-pulse bg-red-500 hover:bg-red-600' : 'bg-purple-500 hover:bg-purple-600'
               }`}
@@ -182,7 +181,7 @@ export function VoiceInterface() {
             </Button>
           </div>
           <p className="text-sm text-gray-700 mt-2">
-            Mantén presionado el botón para hablar. Suelta para finalizar.
+            Haz clic en el botón para iniciar o detener la grabación.
           </p>
         </Card>
       </main>
