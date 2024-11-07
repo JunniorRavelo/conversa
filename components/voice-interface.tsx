@@ -35,6 +35,7 @@ export function VoiceInterface() {
           .join('')
         setVoiceText(transcript)
         console.log("Texto reconocido:", transcript) // Imprime el texto en consola
+        handleVoiceCommand(transcript)
       }
 
       recognitionRef.current.onerror = (event) => {
@@ -82,6 +83,19 @@ export function VoiceInterface() {
     if (inputText.trim()) {
       speakText(inputText)
       setInputText('')
+    }
+  }
+
+  // Maneja los comandos específicos de voz
+  const handleVoiceCommand = (transcript: string) => {
+    const normalizedText = transcript.toLowerCase().trim()
+    
+    if (normalizedText.includes("dime la hora")) {
+      speakText("Son las 7 pm")
+    } else if (normalizedText.includes("qué clima es")) {
+      speakText("Tu ubicación está a 20 grados Celsius")
+    } else if (normalizedText.includes("dime información general")) {
+      speakText("Estás en zona segura, el clima está a 20 grados Celsius y ponte saco porque se esperan tormentas eléctricas el día de hoy")
     }
   }
 
