@@ -69,7 +69,7 @@ export function VoiceInterface() {
  
 
   async function fetchMapa() {
-    const response = await fetch('http://127.0.0.1:8000/api/mapa');
+    const response = await fetch('https://conversa-api.dyamdev.com/api/mapa');
     const data = await response.json();
     setUbicaciones(data);
   }
@@ -77,7 +77,7 @@ export function VoiceInterface() {
   async function fetchMicrofono(mensaje:any) {
     try {
       // Realiza la solicitud POST a la API con el mensaje en el cuerpo
-      const response = await fetch('http://127.0.0.1:8000/api/microfono', {
+      const response = await fetch('https://conversa-api.dyamdev.com/api/microfono', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +90,10 @@ export function VoiceInterface() {
       }
   
       const data = await response.json();
-      console.log(data.numero); // Muestra el número devuelto en la consola
+      console.log(data.numero); 
+      
+
+      // Muestra el número devuelto en la consola
       return data.numero; // Retorna el número si lo necesitas para otras funciones
   
     } catch (error) {
