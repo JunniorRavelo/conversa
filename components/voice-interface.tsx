@@ -5,15 +5,29 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
-import { MapPin, Shield, Users, Coins, Mic, Send } from 'lucide-react'
+import { MapPin, Shield, Users, Coins, Mic, Send,Car } from 'lucide-react'
+import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import Image from 'next/image'
 
 export function VoiceInterface() {
+  const [activeTab, setActiveTab] = useState('Resumen')
   const [isListening, setIsListening] = useState(false)
   const [voiceText, setVoiceText] = useState('')
   const [hasPermission, setHasPermission] = useState(false)
   const [inputText, setInputText] = useState('')
   const recognitionRef = useRef<SpeechRecognition | null>(null)
+
+  const mapContainerStyle = {
+    width: '100%',
+    height: '400px',
+    borderRadius: '16px', // Add rounded corners to the map
+    overflow: 'hidden',
+  };
+
+  const center = {
+    lat: 7.90876,  // Latitud de ejemplo
+    lng: -72.5044205, // Longitud de ejemplo
+  };
 
   useEffect(() => {
     navigator.mediaDevices.getUserMedia({ audio: true })
@@ -100,87 +114,127 @@ export function VoiceInterface() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-600 via-purple-600 to-purple-700">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="p-4 flex items-center justify-center gap-4">
+
+      
+      <header className="bg-gradient-to-b from-blue-500  to-purple-700 p-6">
+        <div className="flex items-center justify-center gap-4">
         <Image
-          src="/placeholder.svg"
+          src="/images/icon.png"
           alt="Robot Logo"
           width={60}
           height={60}
           className="rounded-full"
         />
-        <div className="text-white text-2xl font-bold">ConVersa</div>
+            <div style={{ position: 'relative', width: '150px', height: '60px' }}>
+        <Image
+          src="/images/mintic.png"
+          alt="Robot mintic"
+          layout="fill"
+          objectFit="contain"  // Mantiene la imagen dentro del contenedor sin distorsión
+        />
+      </div>
+        </div>
+        <h1 className="text-white text-center text-3xl font-bold mt-4">ConVersa</h1>
       </header>
+
+    
 
       {/* Main Content */}
       <main className="px-4 pb-20">
         {/* Navigation Tabs */}
-        <Tabs defaultValue="resumen" className="w-full mb-6">
-          <TabsList className="w-full bg-white/20 text-white">
-            <TabsTrigger value="resumen" className="flex-1">Resumen</TabsTrigger>
-            <TabsTrigger value="utilidades" className="flex-1">Utilidades</TabsTrigger>
-            <TabsTrigger value="mapa" className="flex-1">Mapa</TabsTrigger>
-          </TabsList>
-        </Tabs>
 
-        {/* Widgets Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <Card className="p-4 bg-purple-500/80 text-white cursor-pointer hover:bg-purple-600/80 transition-colors" onClick={() => speakText('Maps')}>
-            <div className="flex flex-col items-center text-center gap-2">
-              <MapPin className="w-8 h-8" />
-              <h3 className="font-bold">Maps</h3>
-              <p className="text-sm opacity-90">Ubicación actual</p>
-            </div>
-          </Card>
-
-          <Card className="p-4 bg-purple-500/80 text-white cursor-pointer hover:bg-purple-600/80 transition-colors" onClick={() => speakText('SISBEN')}>
-            <div className="flex flex-col items-center text-center gap-2">
-              <Users className="w-8 h-8" />
-              <h3 className="font-bold">SISBEN</h3>
-              <p className="text-sm opacity-90">Consulta tu estado</p>
-            </div>
-          </Card>
-
-          <Card className="p-4 bg-purple-500/80 text-white cursor-pointer hover:bg-purple-600/80 transition-colors" onClick={() => speakText('Zona')}>
-            <div className="flex flex-col items-center text-center gap-2">
-              <Shield className="w-8 h-8" />
-              <h3 className="font-bold">Zona</h3>
-              <p className="text-sm opacity-90">Área segura</p>
-            </div>
-          </Card>
-
-          <Card className="p-4 bg-purple-500/80 text-white cursor-pointer hover:bg-purple-600/80 transition-colors" onClick={() => speakText('Economía')}>
-            <div className="flex flex-col items-center text-center gap-2">
-              <Coins className="w-8 h-8" />
-              <h3 className="font-bold">Economía</h3>
-              <p className="text-sm opacity-90">Indicadores</p>
-            </div>
-          </Card>
+        <div className="bg-white rounded-full p-2 shadow-lg mb-6 mt-2">
+          <div className="flex gap-2">
+            {['Resumen', 'Utilidades', 'Mapa'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => {
+                  setActiveTab(tab);  // Primera acción
+                  speakText(tab);  // Segunda acción
+                }}
+                className={`flex-1 py-2 px-4 rounded-full text-sm font-medium transition-colors
+                  ${activeTab === tab 
+                    ? 'bg-purple-500 text-white' 
+                    : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Summary Card */}
-        <Card className="p-4 mb-6 bg-white">
-          <h2 className="text-lg font-bold text-purple-600 mb-2">Resumen General</h2>
-          <p className="text-sm text-gray-700">
-            Condiciones favorables en la ciudad. Zona segura, tráfico menor al promedio, buena calidad del aire. Ideal para actividades al aire libre.
-          </p>
-        </Card>
+        {activeTab === "Resumen" && 
+          <div>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText('zona segura')}>
+                <div className="flex flex-col items-center text-white">
+                  <Shield className="w-6 h-6 mb-2" />
+                  <h3 className="text-lg font-bold">Zona segura</h3>
+                  <p className="text-2xl font-bold mb-1">Buena</p>
+                  <p className="text-sm opacity-80">Área vigilada</p>
+                </div>
+              </Card>
+              <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText('Tráfico moderado')}>
+                <div className="flex flex-col items-center text-white">
+                  <Car className="w-6 h-6 mb-2" />
+                  <h3 className="text-lg font-bold">Tráfico Urbano</h3>
+                  <p className="text-2xl font-bold mb-1">Moderado</p>
+                  <p className="text-sm opacity-80">Flujo normal</p>
+                </div>
+              </Card>
+            </div>
 
-        {/* Text to Speech Input */}
-        <div className="flex gap-2 mb-6">
-          <Input
-            type="text"
-            placeholder="Escribe algo para reproducir..."
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            className="flex-grow bg-white text-gray-900 placeholder-gray-500"
-          />
-          <Button onClick={handleSendText} className="bg-purple-500 hover:bg-purple-600">
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
+            <Card className="p-4 mb-6 bg-white cursor-pointer" onClick={() => speakText('Resumen General, Condiciones favorables en la ciudad. Zona segura, tráfico menor al promedio, buena calidad del aire. Ideal para actividades al aire libre.')}>
+              <h2 className="text-lg font-bold text-purple-600 mb-2">Resumen General</h2>
+              <p className="text-sm text-gray-700">
+                Condiciones favorables en la ciudad. Zona segura, tráfico menor al promedio, buena calidad del aire. Ideal para actividades al aire libre.
+              </p>
+            </Card>
+          </div>
+        }
 
+
+        {activeTab === "Utilidades" && 
+          <div>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText('clima bueno')}>
+                <div className="flex flex-col items-center text-white">
+                  <Shield className="w-6 h-6 mb-2" />
+                  <h3 className="text-lg font-bold">Clima</h3>
+                  <p className="text-sm opacity-80">Bueno</p>
+                </div>
+              </Card>
+              <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText('Sisben')}>
+                <div className="flex flex-col items-center text-white">
+                  <Car className="w-6 h-6 mb-2" />
+                  <h3 className="text-lg font-bold">Sisben</h3>
+                  <p className="text-sm opacity-80">Consulta tu puntaje</p>
+                </div>
+              </Card>
+            </div>
+          </div>
+        }
+
+
+        <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
+        {activeTab === "Mapa" && 
+          <div className="mb-2" style={mapContainerStyle} >
+              <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={14}>
+                <Marker position={center} />
+              </GoogleMap>
+          </div>
+        } 
+         </LoadScript>
+        
+
+        
+       
+        
+
+      
         {/* Voice to Text Result */}
         {voiceText && (
           <Card className="p-4 mb-6 bg-white">
@@ -190,22 +244,21 @@ export function VoiceInterface() {
         )}
 
         {/* Microphone Section */}
-        <Card className="p-4 mb-6 bg-white">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-purple-600">Asistente de Voz</h3>
+        <div className="flex flex-col items-center">
             <Button
               onClick={toggleListening}
-              className={`w-12 h-12 rounded-full ${
+              className={`w-16 h-16 rounded-full ${
                 isListening ? 'animate-pulse bg-red-500 hover:bg-red-600' : 'bg-purple-500 hover:bg-purple-600'
               }`}
             >
               <Mic className="w-6 h-6 text-white" />
             </Button>
-          </div>
-          <p className="text-sm text-gray-700 mt-2">
-            Haz clic en el botón para iniciar o detener la grabación.
+          <p className="mt-2 text-purple-500 font-medium">
+            Toca para hablar
           </p>
-        </Card>
+        </div>
+
+      
       </main>
 
       {/* Footer */}
