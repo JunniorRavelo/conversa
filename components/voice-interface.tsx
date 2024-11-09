@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { MapPin, Shield, Users, Coins, Mic, Send,Car } from 'lucide-react'
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, Marker, Circle } from '@react-google-maps/api';
 import Image from 'next/image'
 
 export function VoiceInterface() {
@@ -17,6 +17,9 @@ export function VoiceInterface() {
   const [inputText, setInputText] = useState('')
   const recognitionRef = useRef<SpeechRecognition | null>(null)
 
+  const [ubicaciones, setUbicaciones] = useState([]);
+
+
   const mapContainerStyle = {
     width: '100%',
     height: '400px',
@@ -25,39 +28,48 @@ export function VoiceInterface() {
   };
 
   const center = {
-    lat: 7.90876,  // Latitud de ejemplo
-    lng: -72.5044205, // Longitud de ejemplo
+    lat: 7.12539,  // Latitud de ejemplo
+    lng: -73.1198, // Longitud de ejemplo
   };
 
   useEffect(() => {
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(() => setHasPermission(true))
       .catch(() => setHasPermission(false))
-  }, [])
 
-  useEffect(() => {
-    if (!recognitionRef.current && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-      recognitionRef.current = new SpeechRecognition()
-      recognitionRef.current.lang = 'es-ES'
-      recognitionRef.current.continuous = true
 
-      recognitionRef.current.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join('')
-        setVoiceText(transcript)
-        console.log("Texto reconocido:", transcript) // Imprime el texto en consola
-        handleVoiceCommand(transcript)
+      if (!recognitionRef.current && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+        recognitionRef.current = new SpeechRecognition()
+        recognitionRef.current.lang = 'es-ES'
+        recognitionRef.current.continuous = true
+  
+        recognitionRef.current.onresult = (event) => {
+          const transcript = Array.from(event.results)
+            .map(result => result[0])
+            .map(result => result.transcript)
+            .join('')
+          setVoiceText(transcript)
+          console.log("Texto reconocido:", transcript) // Imprime el texto en consola
+          handleVoiceCommand(transcript)
+        }
+  
+        recognitionRef.current.onerror = (event) => {
+          console.error("Error en el reconocimiento de voz:", event.error)
+          setIsListening(false)
+        }
       }
 
-      recognitionRef.current.onerror = (event) => {
-        console.error("Error en el reconocimiento de voz:", event.error)
-        setIsListening(false)
-      }
-    }
+      fetchMapa();
   }, [])
+
+ 
+
+  async function fetchMapa() {
+    const response = await fetch('http://127.0.0.1:8000/api/mapa');
+    const data = await response.json();
+    setUbicaciones(data);
+  }
 
   const toggleListening = () => {
     if (!hasPermission) {
@@ -114,7 +126,7 @@ export function VoiceInterface() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ maxWidth: '412px', margin: 'auto' }}>
       {/* Header */}
 
       
@@ -200,6 +212,33 @@ export function VoiceInterface() {
         {activeTab === "Utilidades" && 
           <div>
             <div className="grid grid-cols-2 gap-4 mb-6">
+              <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText('Fecha y hora'+new Date().toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })+' '+new Date().toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                  }))}>
+                <div className="flex flex-col items-center text-white">
+                  <Shield className="w-6 h-6 mb-2" />
+                  <h3 className="text-lg font-bold">Fecha y hora</h3>
+                  <p className="text-sm opacity-80 text-center">
+                  {new Date().toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}{' '}
+                  {new Date().toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                  </p>
+                </div>
+              </Card>
               <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText('clima bueno')}>
                 <div className="flex flex-col items-center text-white">
                   <Shield className="w-6 h-6 mb-2" />
@@ -223,7 +262,24 @@ export function VoiceInterface() {
         {activeTab === "Mapa" && 
           <div className="mb-2" style={mapContainerStyle} >
               <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={14}>
-                <Marker position={center} />
+
+              {ubicaciones.map((ubicacion, index) => (
+                <Circle
+                key={index}
+                center={{
+                  lat: parseFloat(ubicacion.latitud),
+                  lng: parseFloat(ubicacion.longitud)
+                }}
+                radius={200} // Radio del círculo en metros (ajusta según lo necesario)
+                options={{
+                  fillColor: "red",
+                  fillOpacity: 0.2, // Opacidad baja para un efecto difuminado
+                  strokeColor: "transparent", // Sin borde
+                }}
+              />
+              ))}
+
+               
               </GoogleMap>
           </div>
         } 
