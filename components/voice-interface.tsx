@@ -49,7 +49,10 @@ export function VoiceInterface() {
             .map(result => result[0])
             .map(result => result.transcript)
             .join('')
-          setVoiceText(transcript)
+            
+          setVoiceText(transcript);
+
+          fetchMicrofono(transcript);
           console.log("Texto reconocido:", transcript) // Imprime el texto en consola
           handleVoiceCommand(transcript)
         }
@@ -71,6 +74,30 @@ export function VoiceInterface() {
     setUbicaciones(data);
   }
 
+  async function fetchMicrofono(mensaje:any) {
+    try {
+      // Realiza la solicitud POST a la API con el mensaje en el cuerpo
+      const response = await fetch('http://127.0.0.1:8000/api/microfono', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mensaje }), // Envia el mensaje en el cuerpo
+      });
+  
+      if (!response.ok) {
+        throw new Error('Error en la solicitud al servidor');
+      }
+  
+      const data = await response.json();
+      console.log(data.numero); // Muestra el número devuelto en la consola
+      return data.numero; // Retorna el número si lo necesitas para otras funciones
+  
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }
+  
   const toggleListening = () => {
     if (!hasPermission) {
       alert('Por favor permite el acceso al micrófono para usar esta función')
