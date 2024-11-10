@@ -15,10 +15,12 @@ export function VoiceInterface() {
   const [voiceText, setVoiceText] = useState('')
   const [hasPermission, setHasPermission] = useState(false)
   const [inputText, setInputText] = useState('')
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
-
+  const [miubicacion, setMiubicacion] = useState({ latitud: 0, longitud: 0});
+  const [zonasegura, setZonasegura] = useState("Zona segura");
+  const [miclima, setMiclima] = useState("");
   const [ubicaciones, setUbicaciones] = useState([]);
 
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
 
   const mapContainerStyle = {
     width: '100%',
@@ -63,26 +65,92 @@ export function VoiceInterface() {
         }
       }
 
-      fetchMapa();
-  }, [])
+      miUbicacionCords();
 
- 
+      
+  }, []);
 
-  async function fetchMapa() {
-    const response = await fetch('https://conversa-api.dyamdev.com/api/mapa');
-    const data = await response.json();
-    setUbicaciones(data);
+  useEffect(() => {
+    fetchMapa();
+
+    fetchMiClima();
+  }, [miubicacion]);
+
+
+  function miUbicacionCords() {
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const latitud = position.coords.latitude;
+        const longitud = position.coords.longitude;
+        const coords = { latitud, longitud };
+        await setMiubicacion(coords);
+        fetchZonaSegura(); 
+      },
+      (error) => {
+        console.error('Error al obtener la ubicación:', error);
+      }
+    );
   }
 
-  async function fetchMicrofono(mensaje:any) {
+  async function fetchZonaSegura() {
     try {
-      // Realiza la solicitud POST a la API con el mensaje en el cuerpo
-      const response = await fetch('https://conversa-api.dyamdev.com/api/microfono', {
+      const response = await fetch('http://127.0.0.1:8000/api/zonasegura', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ mensaje }), // Envia el mensaje en el cuerpo
+        body: JSON.stringify( miubicacion ), // Enviar latitud y longitud en el cuerpo de la solicitud
+      });
+      if (!response.ok) {
+        throw new Error('Error al obtener la zona de seguridad');
+      }
+      const data = await response.json();
+      setZonasegura(data.respuesta); // Asume que setZonasegura actualiza el estado con la respuesta
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }
+
+
+  async function fetchMiClima() {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/miclima', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify( miubicacion ), // Enviar latitud y longitud en el cuerpo de la solicitud
+      });
+      if (!response.ok) {
+        throw new Error('Error al obtener clima');
+      }
+      const data = await response.json();
+      setMiclima(data.respuesta); // Asume que setZonasegura actualiza el estado con la respuesta
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }
+  
+  
+  async function fetchMapa() {
+    const response = await fetch('http://127.0.0.1:8000/api/mapa');
+    const data = await response.json();
+    setUbicaciones(data);
+  }
+
+ 
+
+  async function fetchMicrofono(mensaje:any) {
+    try {
+
+      console.log(miubicacion);
+      // Realiza la solicitud POST a la API con el mensaje en el cuerpo
+      const response = await fetch('http://127.0.0.1:8000/api/microfono', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mensaje,miubicacion }), // Envia el mensaje en el cuerpo
       });
   
       if (!response.ok) {
@@ -90,11 +158,16 @@ export function VoiceInterface() {
       }
   
       const data = await response.json();
-      console.log(data.numero); 
-      
+
+      if(data.tipo === "zona segura"){
+        fetchZonaSegura();
+      }
+
+     
+      speakText(data.respuesta);
 
       // Muestra el número devuelto en la consola
-      return data.numero; // Retorna el número si lo necesitas para otras funciones
+      return data.respuesta; // Retorna el número si lo necesitas para otras funciones
   
     } catch (error) {
       console.error('Error:', error);
@@ -214,17 +287,15 @@ export function VoiceInterface() {
               <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText('zona segura')}>
                 <div className="flex flex-col items-center text-white">
                   <Shield className="w-6 h-6 mb-2" />
-                  <h3 className="text-lg font-bold">Zona segura</h3>
-                  <p className="text-2xl font-bold mb-1">Buena</p>
-                  <p className="text-sm opacity-80">Área vigilada</p>
+                  <h3 className="text-lg font-bold">{zonasegura}</h3>
+                  <p className="text-sm opacity-80">Área comprobada</p>
                 </div>
               </Card>
-              <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText('Tráfico moderado')}>
+              <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText(miclima)}>
                 <div className="flex flex-col items-center text-white">
                   <Car className="w-6 h-6 mb-2" />
-                  <h3 className="text-lg font-bold">Tráfico Urbano</h3>
-                  <p className="text-2xl font-bold mb-1">Moderado</p>
-                  <p className="text-sm opacity-80">Flujo normal</p>
+                  <h3 className="text-lg font-bold">Clima</h3>
+                  <p className="text-sm opacity-80">{miclima}</p>
                 </div>
               </Card>
             </div>
