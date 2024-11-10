@@ -11,7 +11,11 @@ import Image from 'next/image'
 
 export function VoiceInterface() {
 
-  const url = "https://conversa-api.dyamdev.com";
+  //const url = "https://conversa-api.dyamdev.com";
+  const url = "http://127.0.0.1:8000";
+  
+
+
   const [activeTab, setActiveTab] = useState('Resumen')
   const [isListening, setIsListening] = useState(false)
   const [voiceText, setVoiceText] = useState('')
@@ -302,10 +306,10 @@ export function VoiceInterface() {
               </Card>
             </div>
 
-            <Card className="p-4 mb-6 bg-white cursor-pointer" onClick={() => speakText('Resumen General, Condiciones favorables en la ciudad. Zona segura, tráfico menor al promedio, buena calidad del aire. Ideal para actividades al aire libre.')}>
+            <Card className="p-4 mb-6 bg-white cursor-pointer" onClick={() => speakText('Las condiciones donde estas es '+ zonasegura + ' y '+miclima)}>
               <h2 className="text-lg font-bold text-purple-600 mb-2">Resumen General</h2>
               <p className="text-sm text-gray-700">
-                Condiciones favorables en la ciudad. Zona segura, tráfico menor al promedio, buena calidad del aire. Ideal para actividades al aire libre.
+                Las condiciones donde estas es {zonasegura} y {miclima}.
               </p>
             </Card>
           </div>
@@ -315,16 +319,28 @@ export function VoiceInterface() {
         {activeTab === "Utilidades" && 
           <div>
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText('Fecha y hora'+new Date().toLocaleDateString('es-ES', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })+' '+new Date().toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                  }))}>
+            <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer" onClick={() => {
+              const now = new Date();
+              const fecha = now.toLocaleDateString('es-ES', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+              });
+              const hora = now.toLocaleTimeString('es-ES', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+              });
+              
+              // Determina si es de la mañana o de la tarde
+              const periodo = now.getHours() < 12 ? 'de la mañana' : 'de la tarde';
+              
+              // Genera el texto a decir
+              const texto = `Fecha y hora: ${fecha} ${hora} ${periodo}`;
+              
+              // Llama a la función para hablar el texto
+              speakText(texto);
+          }}>
                 <div className="flex flex-col items-center text-white">
                   <Shield className="w-6 h-6 mb-2" />
                   <h3 className="text-lg font-bold">Fecha y hora</h3>
@@ -342,18 +358,11 @@ export function VoiceInterface() {
                   </p>
                 </div>
               </Card>
-              <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText('clima bueno')}>
-                <div className="flex flex-col items-center text-white">
-                  <Shield className="w-6 h-6 mb-2" />
-                  <h3 className="text-lg font-bold">Clima</h3>
-                  <p className="text-sm opacity-80">Bueno</p>
-                </div>
-              </Card>
-              <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText('Sisben')}>
+              <Card className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 rounded-xl cursor-pointer "  onClick={() => speakText(miclima)}>
                 <div className="flex flex-col items-center text-white">
                   <Car className="w-6 h-6 mb-2" />
-                  <h3 className="text-lg font-bold">Sisben</h3>
-                  <p className="text-sm opacity-80">Consulta tu puntaje</p>
+                  <h3 className="text-lg font-bold">Clima</h3>
+                  <p className="text-sm opacity-80">{miclima}</p>
                 </div>
               </Card>
             </div>
