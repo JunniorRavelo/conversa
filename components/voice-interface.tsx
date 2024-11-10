@@ -10,6 +10,8 @@ import { GoogleMap, LoadScript, Marker, Circle } from '@react-google-maps/api';
 import Image from 'next/image'
 
 export function VoiceInterface() {
+
+  const url = "https://conversa-api.dyamdev.com";
   const [activeTab, setActiveTab] = useState('Resumen')
   const [isListening, setIsListening] = useState(false)
   const [voiceText, setVoiceText] = useState('')
@@ -94,7 +96,7 @@ export function VoiceInterface() {
 
   async function fetchZonaSegura() {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/zonasegura', {
+      const response = await fetch(url+'/api/zonasegura', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,7 +116,7 @@ export function VoiceInterface() {
 
   async function fetchMiClima() {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/miclima', {
+      const response = await fetch(url+'/api/miclima', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +135,7 @@ export function VoiceInterface() {
   
   
   async function fetchMapa() {
-    const response = await fetch('http://127.0.0.1:8000/api/mapa');
+    const response = await fetch(url+'/api/mapa');
     const data = await response.json();
     setUbicaciones(data);
   }
@@ -145,7 +147,7 @@ export function VoiceInterface() {
 
       console.log(miubicacion);
       // Realiza la solicitud POST a la API con el mensaje en el cuerpo
-      const response = await fetch('http://127.0.0.1:8000/api/microfono', {
+      const response = await fetch(url+'/api/microfono', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
