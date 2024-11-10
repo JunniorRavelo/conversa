@@ -41,7 +41,7 @@ export function VoiceInterface() {
   };
 
   useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ audio: true })
+    navigator.mediaDevices?.getUserMedia({ audio: true })
       .then(() => setHasPermission(true))
       .catch(() => setHasPermission(false))
 
