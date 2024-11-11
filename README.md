@@ -8,7 +8,12 @@
 
 ## Descripción del Proyecto
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+ConVersa, es el resultado de nuestro arduo trabajo acompañado por Datos abiertos, dando lugar a la creación de una aplicación web original, versátil y sobre todo, funcional. Está aplicación web es una herramienta que potencia la visualización de algunos conjuntos de datos de datos.gov.co , DANE y clima (openweathermap) para que las personas puedan usarla directamente en su día a día.
+
+En ella, encontramos utilidades como lo son los centros de salud, zonas seguras, centros educativos, información de movilidad y un plus, como lo es cualquier información relacionada al ambiente climático.
+
+Nos colocamos la meta, que la aplicación web fuera lo más intuitiva posible, y aunque nos costó implementar el comando de voz, me complace decir que es toda una realidad. Con él, pudimos implementar funciones que vayan especialmente dirigidas a personas con discapacidad visual, dándoles autonomía y un poco más de libertad, una herramienta intuitiva que les ayuda en su diario vivir.
+
 
 Este proyecto será presentado al concurso **"Datos a la U"** del **Ministerio de las TIC** de **Colombia** en **2024**.
 
