@@ -3,30 +3,37 @@
 import { useState, useEffect, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { MapPin, Shield, Users, Coins, Mic, Send,Car } from 'lucide-react'
-import { GoogleMap, LoadScript, Marker, Circle } from '@react-google-maps/api';
+import {  Shield, Mic,Car } from 'lucide-react'
+import { GoogleMap, LoadScript, Circle } from '@react-google-maps/api';
 import Image from 'next/image'
 
 export function VoiceInterface() {
 
-  //const url = "https://conversa-api.dyamdev.com";
-  const url = "http://127.0.0.1:8000";
+  const url = "https://conversa-api.dyamdev.com";
+  //const url = "http://127.0.0.1:8000";
   
-
+  interface Ubicacion {
+    latitud?: string; // optional in case latitud or longitud might be missing
+    longitud?: string;
+  }
+  
 
   const [activeTab, setActiveTab] = useState('Resumen')
   const [isListening, setIsListening] = useState(false)
   const [voiceText, setVoiceText] = useState('')
   const [hasPermission, setHasPermission] = useState(false)
-  const [inputText, setInputText] = useState('')
   const [miubicacion, setMiubicacion] = useState({ latitud: 0, longitud: 0});
   const [zonasegura, setZonasegura] = useState("Zona segura");
   const [miclima, setMiclima] = useState("");
-  const [ubicaciones, setUbicaciones] = useState([]);
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+
+// Use a custom type for SpeechRecognition temporarily if it's not defined globally
+
+
+// Now you can use it as follows:
+const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | InstanceType<typeof window.webkitSpeechRecognition> | null>(null);
+
 
   const mapContainerStyle = {
     width: '100%',
@@ -41,41 +48,48 @@ export function VoiceInterface() {
   };
 
   useEffect(() => {
-    navigator.mediaDevices?.getUserMedia({ audio: true })
+    // Request microphone access
+    navigator.mediaDevices.getUserMedia({ audio: true })
       .then(() => setHasPermission(true))
-      .catch(() => setHasPermission(false))
-
-
-      if (!recognitionRef.current && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-        recognitionRef.current = new SpeechRecognition()
-        recognitionRef.current.lang = 'es-ES'
-        recognitionRef.current.continuous = true
+      .catch(() => setHasPermission(false));
   
-        recognitionRef.current.onresult = (event) => {
+    // Ensure this runs only on the client side
+    if (typeof window !== "undefined" && !recognitionRef.current) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  
+      // Initialize SpeechRecognition if supported
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.lang = 'es-ES';
+        recognitionRef.current.continuous = true;
+  
+        // Define the onresult handler
+        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
           const transcript = Array.from(event.results)
             .map(result => result[0])
             .map(result => result.transcript)
-            .join('')
-            
-          setVoiceText(transcript);
-
-          fetchMicrofono(transcript);
-          console.log("Texto reconocido:", transcript) // Imprime el texto en consola
-          handleVoiceCommand(transcript)
-        }
+            .join('');
   
-        recognitionRef.current.onerror = (event) => {
-          console.error("Error en el reconocimiento de voz:", event.error)
-          setIsListening(false)
-        }
+          setVoiceText(transcript);
+          fetchMicrofono(transcript); // Call external function if defined
+          console.log("Texto reconocido:", transcript); // Log recognized text
+          handleVoiceCommand(transcript); // Handle command if defined
+        };
+  
+        // Define the onerror handler
+        recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
+          console.error("Error en el reconocimiento de voz:", event.error);
+          setIsListening(false);
+        };
       }
-
-      miUbicacionCords();
-
-      
+    }
+  
+    // Call miUbicacionCords function if it's defined
+    miUbicacionCords();
+  
   }, []);
 
+  
   useEffect(() => {
     fetchMapa();
 
@@ -146,7 +160,7 @@ export function VoiceInterface() {
 
  
 
-  async function fetchMicrofono(mensaje:any) {
+  async function fetchMicrofono(mensaje:string) {
     try {
 
       console.log(miubicacion);
@@ -192,6 +206,7 @@ export function VoiceInterface() {
       setVoiceText('') // Limpia el texto al iniciar una nueva grabación
       recognitionRef.current?.start()
     }
+  
     setIsListening(!isListening)
   }
 
@@ -214,12 +229,7 @@ export function VoiceInterface() {
     }
   }
 
-  const handleSendText = () => {
-    if (inputText.trim()) {
-      speakText(inputText)
-      setInputText('')
-    }
-  }
+ 
 
   // Maneja los comandos específicos de voz
   const handleVoiceCommand = (transcript: string) => {
@@ -370,7 +380,7 @@ export function VoiceInterface() {
         }
 
 
-        <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
+      <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}>
         {activeTab === "Mapa" && 
           <div className="mb-2" style={mapContainerStyle} >
               <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={14}>
@@ -379,8 +389,8 @@ export function VoiceInterface() {
                 <Circle
                 key={index}
                 center={{
-                  lat: parseFloat(ubicacion.latitud),
-                  lng: parseFloat(ubicacion.longitud)
+                  lat: parseFloat(ubicacion?.latitud ?? "0"),
+                  lng: parseFloat(ubicacion?.longitud ?? "0")
                 }}
                 radius={200} // Radio del círculo en metros (ajusta según lo necesario)
                 options={{
