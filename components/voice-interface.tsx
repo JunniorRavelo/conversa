@@ -9,8 +9,8 @@ import Image from 'next/image'
 
 export function VoiceInterface() {
 
-  //const url = "https://conversa-api.dyamdev.com";
-  const url = "http://127.0.0.1:8000";
+  const url = "https://conversa-api.dyamdev.com";
+  //const url = "http://127.0.0.1:8000";
 
   const mapContainerStyle = {
     width: '100%',
