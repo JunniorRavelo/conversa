@@ -9,31 +9,8 @@ import Image from 'next/image'
 
 export function VoiceInterface() {
 
-  const url = "https://conversa-api.dyamdev.com";
-  //const url = "http://127.0.0.1:8000";
-  
-  interface Ubicacion {
-    latitud?: string; // optional in case latitud or longitud might be missing
-    longitud?: string;
-  }
-  
-
-  const [activeTab, setActiveTab] = useState('Resumen')
-  const [isListening, setIsListening] = useState(false)
-  const [voiceText, setVoiceText] = useState('')
-  const [hasPermission, setHasPermission] = useState(false)
-  const [miubicacion, setMiubicacion] = useState({ latitud: 0, longitud: 0});
-  const [zonasegura, setZonasegura] = useState("Zona segura");
-  const [miclima, setMiclima] = useState("");
-  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
-
-
-// Use a custom type for SpeechRecognition temporarily if it's not defined globally
-
-
-// Now you can use it as follows:
-const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | InstanceType<typeof window.webkitSpeechRecognition> | null>(null);
-
+  //const url = "https://conversa-api.dyamdev.com";
+  const url = "http://127.0.0.1:8000";
 
   const mapContainerStyle = {
     width: '100%',
@@ -42,22 +19,43 @@ const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | In
     overflow: 'hidden',
   };
 
-  const center = {
+ 
+
+  interface Ubicacion {
+    latitud?: string; // optional in case latitud or longitud might be missing
+    longitud?: string;
+  }
+
+  const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | InstanceType<typeof window.webkitSpeechRecognition> | null>(null);
+
+  const [activeTab, setActiveTab] = useState('Resumen');
+  const [isListening, setIsListening] = useState(false)
+  const [voiceText, setVoiceText] = useState('')
+  const [hasPermission, setHasPermission] = useState(false)
+  const [miubicacion, setMiubicacion] = useState({ latitud: 0, longitud: 0});
+  const [zonasegura, setZonasegura] = useState("Zona segura");
+  const [miclima, setMiclima] = useState("");
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [mensaje, setMensaje] = useState(''); // Nuevo estado para almacenar el mensaje
+
+  const [center, setCenter] = useState({
     lat: 7.12539,  // Latitud de ejemplo
     lng: -73.1198, // Longitud de ejemplo
-  };
+  });
 
+  //inicia permisos de microfono, sonido ubicacion
   useEffect(() => {
-    // Request microphone access
+
+    miUbicacionCords();
+
+    // requerir microfono
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(() => setHasPermission(true))
       .catch(() => setHasPermission(false));
   
-    // Ensure this runs only on the client side
     if (typeof window !== "undefined" && !recognitionRef.current) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   
-      // Initialize SpeechRecognition if supported
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.lang = 'es-ES';
@@ -71,40 +69,94 @@ const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | In
             .join('');
   
           setVoiceText(transcript);
-          fetchMicrofono(transcript); // Call external function if defined
-          console.log("Texto reconocido:", transcript); // Log recognized text
-          handleVoiceCommand(transcript); // Handle command if defined
+          setMensaje(transcript); 
         };
   
-        // Define the onerror handler
         recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
           console.error("Error en el reconocimiento de voz:", event.error);
           setIsListening(false);
         };
       }
     }
-  
-    // Call miUbicacionCords function if it's defined
-    miUbicacionCords();
-  
   }, []);
 
   
+  //si la ubicacion existe hace las peticiones de la info cercana
   useEffect(() => {
-    fetchMapa();
-
-    fetchMiClima();
+    if (miubicacion.latitud !== 0 && miubicacion.longitud !== 0) {
+      fetchMapa();
+      fetchMiClima();
+      fetchZonaSegura();
+    }
   }, [miubicacion]);
 
+  useEffect(() => {
+    if (miubicacion.latitud !== 0 && miubicacion.longitud !== 0 && mensaje) {
+      fetchMicrofono(mensaje, miubicacion);
+    }
+  }, [miubicacion, mensaje]);
+  
+  
+  //microno, procesa todas la peticiones realizadas atravez del micro
+  async function fetchMicrofono(mensaje: string, coords: { latitud: number; longitud: number }) {
 
-  function miUbicacionCords() {
+    try {
+      const response = await fetch(url+'/api/microfono', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mensaje,
+          latitud: coords.latitud,
+          longitud: coords.longitud,
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Error en la solicitud al servidor');
+      }
+      const data = await response.json();
+      if(data.tipo === "zona segura"){
+        fetchZonaSegura();
+      }
+
+      console.log('ubicacion',data.tipo );
+      if(data.tipo === "hospital"){
+        const ubicacion = [{
+          latitud:data.datos.ubicacion.latitud,
+          longitud: data.datos.ubicacion.longitud,
+        }];
+
+       
+        setUbicaciones(ubicacion);
+        setCenter({
+          lat: coords.latitud,
+          lng: coords.longitud,
+        });
+        setActiveTab('Mapa');
+      }
+     
+      speakText(data.respuesta);
+      return data.respuesta; // Retorna el número si lo necesitas para otras funciones
+  
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }
+  
+
+  //toma las cordenadas de mi ubicacion y las guarda en una variable global
+  async function miUbicacionCords() {
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
+      (position) => {
         const latitud = position.coords.latitude;
         const longitud = position.coords.longitude;
         const coords = { latitud, longitud };
-        await setMiubicacion(coords);
-        fetchZonaSegura(); 
+
+        if (position.coords.latitude !== 0 && position.coords.longitude !== 0) {
+          setMiubicacion(coords);
+        }
       },
       (error) => {
         console.error('Error al obtener la ubicación:', error);
@@ -112,6 +164,7 @@ const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | In
     );
   }
 
+  //peticion de zona segura basada en mi ubicacion
   async function fetchZonaSegura() {
     try {
       const response = await fetch(url+'/api/zonasegura', {
@@ -131,8 +184,9 @@ const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | In
     }
   }
 
-
+  //peticion del clima en mi ubicacion actual
   async function fetchMiClima() {
+    console.log('fetchMiClima ',miubicacion);
     try {
       const response = await fetch(url+'/api/miclima', {
         method: 'POST',
@@ -151,7 +205,7 @@ const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | In
     }
   }
   
-  
+  //peticion de zonas calientes inseguras para el mapa
   async function fetchMapa() {
     const response = await fetch(url+'/api/mapa');
     const data = await response.json();
@@ -159,57 +213,22 @@ const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | In
   }
 
  
-
-  async function fetchMicrofono(mensaje:string) {
-    try {
-
-      console.log(miubicacion);
-      // Realiza la solicitud POST a la API con el mensaje en el cuerpo
-      const response = await fetch(url+'/api/microfono', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ mensaje,miubicacion }), // Envia el mensaje en el cuerpo
-      });
-  
-      if (!response.ok) {
-        throw new Error('Error en la solicitud al servidor');
-      }
-  
-      const data = await response.json();
-
-      if(data.tipo === "zona segura"){
-        fetchZonaSegura();
-      }
-
-     
-      speakText(data.respuesta);
-
-      // Muestra el número devuelto en la consola
-      return data.respuesta; // Retorna el número si lo necesitas para otras funciones
-  
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  }
-  
+  //funcion que inicializa el microfono
   const toggleListening = () => {
     if (!hasPermission) {
       alert('Por favor permite el acceso al micrófono para usar esta función')
       return
     }
-
     if (isListening) {
       recognitionRef.current?.stop()
     } else {
       setVoiceText('') // Limpia el texto al iniciar una nueva grabación
       recognitionRef.current?.start()
     }
-  
     setIsListening(!isListening)
   }
 
+  //reproduce en voz alta un texto
   const speakText = async (text: string) => {
     if ('speechSynthesis' in window) {
       // Espera hasta que `speechSynthesis` esté listo
@@ -229,25 +248,10 @@ const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | In
     }
   }
 
- 
-
-  // Maneja los comandos específicos de voz
-  const handleVoiceCommand = (transcript: string) => {
-    const normalizedText = transcript.toLowerCase().trim()
-    
-    if (normalizedText.includes("dime la hora")) {
-      speakText("Son las 7 pm")
-    } else if (normalizedText.includes("qué clima es")) {
-      speakText("Tu ubicación está a 20 grados Celsius")
-    } else if (normalizedText.includes("dime información general")) {
-      speakText("Estás en zona segura, el clima está a 20 grados Celsius y ponte saco porque se esperan tormentas eléctricas el día de hoy")
-    }
-  }
 
   return (
     <div className="min-h-screen" style={{ maxWidth: '412px', margin: 'auto' }}>
       {/* Header */}
-
       
       <header className="bg-gradient-to-b from-blue-500  to-purple-700 p-6">
         <div className="flex items-center justify-center gap-4">
@@ -269,7 +273,6 @@ const recognitionRef = useRef<InstanceType<typeof window.SpeechRecognition> | In
         </div>
         <h1 className="text-white text-center text-3xl font-bold mt-4">ConVersa</h1>
       </header>
-
     
 
       {/* Main Content */}
